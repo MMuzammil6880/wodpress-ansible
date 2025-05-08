@@ -1,0 +1,83 @@
+---
+- name: Install and configure WordPress
+  hosts: wordpress-server
+  become: true
+
+  vars:
+    wp_download_url: https://wordpress.org/latest.tar.gz
+    wp_web_root: /var/www/html
+    wp_dir: /var/www/html/wordpress
+    server_domain: "{{ ansible_host }}"  # or replace with your domain
+
+  tasks:
+    - name: Update and upgrade APT packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install required packages
+      apt:
+        name:
+          - apache2
+          - php
+          - libapache2-mod-php
+          - php-mysql
+          - mysql-client
+          - unzip
+        state: present
+
+    - name: Enable and start Apache
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+
+    - name: Download latest WordPress
+      get_url:
+        url: "{{ wp_download_url }}"
+        dest: /tmp/latest.tar.gz
+
+    - name: Extract WordPress
+      unarchive:
+        src: /tmp/latest.tar.gz
+        dest: "{{ wp_web_root }}"
+        remote_src: yes
+
+    - name: Set ownership for WordPress files
+      file:
+        path: "{{ wp_web_root }}"
+        owner: www-data
+        group: www-data
+        recurse: yes
+
+    - name: Set permissions for WordPress directory
+      file:
+        path: "{{ wp_dir }}"
+        mode: "0755"
+        recurse: yes
+
+    - name: Create Apache virtual host file for WordPress
+      copy:
+        dest: /etc/apache2/sites-available/wordpress.conf
+        content: |
+          <VirtualHost *:80>
+              ServerName {{ server_domain }}
+              DocumentRoot /var/www/html/wordpress
+              <Directory /var/www/html/wordpress>
+                  AllowOverride All
+              </Directory>
+          </VirtualHost>
+
+    - name: Enable WordPress site
+      command: a2ensite wordpress.conf
+      notify: Restart Apache
+
+    - name: Disable default Apache site
+      command: a2dissite 000-default.conf
+      notify: Restart Apache
+
+  handlers:
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
