@@ -1,6 +1,6 @@
 ---
 - name: Install and configure WordPress
-  hosts: wordpress-server
+  hosts: wordpress
   become: true
 
   vars:
