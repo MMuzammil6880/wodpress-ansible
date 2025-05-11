@@ -1,6 +1,6 @@
 ---
 - name: Install and configure WordPress
-  hosts: wordpress
+  hosts: localhost
   become: true
 
   vars:
@@ -61,7 +61,7 @@
         dest: /etc/apache2/sites-available/wordpress.conf
         content: |
           <VirtualHost *:80>
-              ServerName {{ server_domain }}
+              ServerName localhost
               DocumentRoot /var/www/html/wordpress
               <Directory /var/www/html/wordpress>
                   AllowOverride All
